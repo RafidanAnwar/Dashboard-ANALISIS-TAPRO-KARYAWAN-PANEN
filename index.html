@@ -1,0 +1,2107 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard : ANALISIS TAPRO KARYAWAN PANEN — PT. Cipta Davia Mandiri (Kelinjau Estate)</title>
+  
+  <!-- Tailwind CSS Play CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <!-- SheetJS (XLSX) CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+          },
+          colors: {
+            palm: {
+              900: '#163818',
+              800: '#1f4e22',
+              700: '#29652d',
+              600: '#357f3a',
+              100: '#e8f5e9',
+              50: '#f4faf4',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #f3f5f2;
+      color: #1e293b;
+    }
+
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+
+    /* Print / Formal Report Styling */
+    @media print {
+      @page {
+        size: A4 landscape;
+        margin: 12mm 14mm;
+      }
+      body {
+        background: #ffffff !important;
+        color: #000000 !important;
+        font-size: 10pt !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+      .no-print {
+        display: none !important;
+      }
+      .print-only {
+        display: block !important;
+      }
+      .print-break-inside-avoid {
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+      .print-page-break {
+        page-break-before: always;
+      }
+    }
+  </style>
+</head>
+<body class="antialiased min-h-screen flex flex-col">
+
+  <!-- ===================================================================== -->
+  <!-- TOAST NOTIFICATION CONTAINER                                          -->
+  <!-- ===================================================================== -->
+  <div id="toastContainer" class="no-print fixed bottom-5 right-5 z-50 flex flex-col gap-2 max-w-sm"></div>
+
+  <!-- ===================================================================== -->
+  <!-- INTERACTIVE WEB DASHBOARD (NO-PRINT WRAPPER)                          -->
+  <!-- ===================================================================== -->
+  <div id="webDashboard" class="no-print flex-1 flex flex-col">
+    
+    <!-- TOP HEADER BAR -->
+    <header class="bg-gradient-to-r from-[#173e19] via-[#215524] to-[#2c6e30] text-white shadow-md">
+      <div class="max-w-[1600px] mx-auto px-4 sm:px-6 py-3.5 flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3">
+        <!-- Title & Subtitle -->
+        <div class="flex items-start sm:items-center gap-3">
+          <div class="w-10 h-10 rounded-lg bg-white/15 border border-white/25 flex items-center justify-center shrink-0 mt-0.5 sm:mt-0">
+            <i data-lucide="sprout" class="w-6 h-6 text-amber-300"></i>
+          </div>
+          <div>
+            <div class="flex flex-wrap items-center gap-2">
+              <h1 class="text-lg sm:text-xl font-extrabold tracking-tight">
+                Dashboard : ANALISIS TAPRO KARYAWAN PANEN
+              </h1>
+              <span class="px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider rounded bg-amber-400/20 text-amber-200 border border-amber-300/30">
+                PT. Cipta Davia Mandiri · Kelinjau Estate
+              </span>
+            </div>
+            <p class="text-xs text-emerald-100/90 mt-0.5">
+              Absensi Pemanen · Siap Borong Panen · Mutu/OER — <span id="headerSubtitleInfo">TAPRO Bayar 2025/2026 (Dataset Default Kelinjau Estate & Pembanding)</span>
+            </p>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex flex-wrap items-center gap-2">
+          <input type="file" id="excelFileInput" accept=".xlsx,.xls,.csv" class="hidden" />
+          
+          <button onclick="document.getElementById('excelFileInput').click()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white text-slate-800 hover:bg-emerald-50 font-semibold text-xs shadow-sm transition cursor-pointer">
+            <i data-lucide="upload" class="w-3.5 h-3.5 text-emerald-700"></i>
+            <span>Upload Data Baru</span>
+          </button>
+
+          <button onclick="downloadExcelTemplate()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-emerald-50 text-emerald-900 hover:bg-emerald-100 border border-emerald-200 font-semibold text-xs shadow-sm transition cursor-pointer" title="Unduh template format Excel standar">
+            <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5 text-emerald-700"></i>
+            <span>Template Excel</span>
+          </button>
+
+          <button onclick="saveDataToIndexedDB()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white text-slate-800 hover:bg-blue-50 font-semibold text-xs shadow-sm transition cursor-pointer">
+            <i data-lucide="save" class="w-3.5 h-3.5 text-blue-600"></i>
+            <span>Save</span>
+          </button>
+
+          <button onclick="resetFiltersAndData()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white text-slate-800 hover:bg-slate-100 font-semibold text-xs shadow-sm transition cursor-pointer">
+            <i data-lucide="rotate-ccw" class="w-3.5 h-3.5 text-slate-600"></i>
+            <span>Refresh / Reset</span>
+          </button>
+
+          <button onclick="triggerFormalPrint()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[#112d13] hover:bg-[#0b1f0d] text-amber-300 border border-amber-400/40 font-semibold text-xs shadow-sm transition cursor-pointer">
+            <i data-lucide="printer" class="w-3.5 h-3.5"></i>
+            <span>Export PDF</span>
+          </button>
+
+          <button onclick="clearSavedData()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 font-semibold text-xs shadow-sm transition cursor-pointer">
+            <i data-lucide="trash-2" class="w-3.5 h-3.5 text-rose-600"></i>
+            <span>Hapus Data Tersimpan</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- FILTER / SLICER PANEL -->
+      <div class="bg-[#fcfbf7] text-slate-800 border-b border-amber-200/80">
+        <div class="max-w-[1600px] mx-auto px-4 sm:px-6 py-2.5">
+          <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2.5">
+            <!-- Dari Tanggal -->
+            <div>
+              <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Dari Tanggal</label>
+              <input type="date" id="filterStartDate" value="2025-10-01" onchange="applyFilters()"
+                class="w-full px-2.5 py-1.5 text-xs font-semibold bg-white border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600" />
+            </div>
+
+            <!-- Sampai Tanggal -->
+            <div>
+              <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Sampai Tanggal</label>
+              <input type="date" id="filterEndDate" value="2026-09-30" onchange="applyFilters()"
+                class="w-full px-2.5 py-1.5 text-xs font-semibold bg-white border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600" />
+            </div>
+
+            <!-- Group -->
+            <div>
+              <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Group</label>
+              <select id="filterGroup" onchange="applyFilters()"
+                class="w-full px-2.5 py-1.5 text-xs font-semibold bg-white border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-600">
+                <option value="ALL">Semua Group</option>
+              </select>
+            </div>
+
+            <!-- Owner -->
+            <div>
+              <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Owner</label>
+              <select id="filterOwner" onchange="applyFilters()"
+                class="w-full px-2.5 py-1.5 text-xs font-semibold bg-white border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-600">
+                <option value="ALL">Semua Owner</option>
+              </select>
+            </div>
+
+            <!-- Estate -->
+            <div>
+              <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Estate</label>
+              <select id="filterEstate" onchange="applyFilters()"
+                class="w-full px-2.5 py-1.5 text-xs font-semibold bg-white border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-600">
+                <option value="ALL">Semua Estate</option>
+              </select>
+            </div>
+
+            <!-- Jabatan -->
+            <div>
+              <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Jabatan</label>
+              <select id="filterJabatan" onchange="applyFilters()"
+                class="w-full px-2.5 py-1.5 text-xs font-semibold bg-emerald-50/70 text-emerald-950 border border-emerald-400 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-600">
+                <option value="ALL">Semua Jabatan</option>
+              </select>
+            </div>
+
+            <!-- Rentang Tanggal Preset -->
+            <div>
+              <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Rentang Tanggal</label>
+              <select id="filterDatePreset" onchange="handleDatePresetChange()"
+                class="w-full px-2.5 py-1.5 text-xs font-semibold bg-white border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-600">
+                <option value="ALL">Semua Data</option>
+                <option value="12M">12 Bulan Terakhir</option>
+                <option value="6M">6 Bulan Terakhir</option>
+                <option value="3M">3 Bulan Terakhir</option>
+                <option value="1M">1 Bulan Terakhir</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- ACTIVE STATUS PILLS BAR -->
+          <div id="statusPillsBar" class="flex flex-wrap items-center gap-1.5 mt-2.5 pt-2 border-t border-slate-200/70 text-[11px]">
+            <!-- Populated dynamically via JS -->
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- MAIN CONTENT CONTAINER -->
+    <main class="max-w-[1600px] w-full mx-auto px-4 sm:px-6 py-5 space-y-6 flex-1">
+
+      <!-- =================================================================== -->
+      <!-- SECTION 1: 5 KPI CARDS                                              -->
+      <!-- =================================================================== -->
+      <section>
+        <div class="flex items-center gap-2 mb-3">
+          <span class="w-1 h-4 bg-emerald-700 rounded-full"></span>
+          <h2 class="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-emerald-950">
+            ANALISA TAPRO KARYAWAN PANEN — <span class="font-semibold text-slate-600 normal-case">Indikator Utama</span>
+          </h2>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
+          <!-- KPI 1: TOTAL TAPRO DIBAYARKAN -->
+          <div id="kpiCard1" class="bg-white rounded-xl border border-slate-200/90 border-t-4 border-t-amber-500 p-4 shadow-sm flex flex-col justify-between">
+            <div>
+              <div class="text-[10px] font-bold uppercase tracking-wider text-slate-500">TOTAL TAPRO DIBAYARKAN</div>
+              <div id="kpi1Value" class="text-2xl font-extrabold text-slate-900 mt-1 tracking-tight">Rp 0</div>
+              <div id="kpi1Sub" class="text-[11px] text-slate-500 mt-0.5">0 karyawan · rata-rata Rp 0/orang</div>
+              <div id="kpi1Delta" class="text-[11px] font-semibold mt-1.5 flex items-center gap-1 text-slate-500">-</div>
+            </div>
+            <div class="mt-2">
+              <div class="h-10 w-full">
+                <canvas id="sparkline1"></canvas>
+              </div>
+              <div class="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between">
+                <span id="kpi1Badge" class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800">Status: Waspada</span>
+                <span id="kpi1PeriodTag" class="text-[10px] text-slate-400 font-medium">12 bln</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- KPI 2: % PENERIMA TAPRO -->
+          <div id="kpiCard2" class="bg-white rounded-xl border border-slate-200/90 border-t-4 border-t-amber-500 p-4 shadow-sm flex flex-col justify-between">
+            <div>
+              <div class="text-[10px] font-bold uppercase tracking-wider text-slate-500">% PENERIMA TAPRO</div>
+              <div class="flex items-baseline gap-1.5 mt-1">
+                <span id="kpi2Value" class="text-2xl font-extrabold text-slate-900 tracking-tight">0,0%</span>
+                <span class="text-xs font-medium text-slate-500">karyawan-bulan</span>
+              </div>
+              <div id="kpi2Sub" class="text-[11px] text-slate-500 mt-0.5">0 dari 0 karyawan-bulan</div>
+              <div id="kpi2Delta" class="text-[11px] font-semibold mt-1.5 flex items-center gap-1 text-slate-500">-</div>
+            </div>
+            <div class="mt-2">
+              <div class="h-10 w-full">
+                <canvas id="sparkline2"></canvas>
+              </div>
+              <div class="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between">
+                <span id="kpi2Badge" class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800">Status: Waspada</span>
+                <span class="text-[10px] text-slate-400 font-medium">Target ≥ 40%</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- KPI 3: KEHADIRAN (HK AKTUAL / BUDGET) -->
+          <div id="kpiCard3" class="bg-white rounded-xl border border-slate-200/90 border-t-4 border-t-amber-500 p-4 shadow-sm flex flex-col justify-between">
+            <div>
+              <div class="text-[10px] font-bold uppercase tracking-wider text-slate-500">KEHADIRAN (HK AKTUAL / BUDGET)</div>
+              <div id="kpi3Value" class="text-2xl font-extrabold text-slate-900 mt-1 tracking-tight">0,0%</div>
+              <div id="kpi3Sub" class="text-[11px] text-slate-500 mt-0.5">Rata-rata 0,0 HK vs budget 0,0 HK</div>
+              <div id="kpi3Delta" class="text-[11px] font-semibold mt-1.5 flex items-center gap-1 text-slate-500">-</div>
+            </div>
+            <div class="mt-2">
+              <div class="h-10 w-full">
+                <canvas id="sparkline3"></canvas>
+              </div>
+              <div class="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between">
+                <span id="kpi3Badge" class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800">Status: Waspada</span>
+                <span class="text-[10px] text-slate-400 font-medium">Target ≥ 85%</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- KPI 4: RATA-RATA SIAP BORONG -->
+          <div id="kpiCard4" class="bg-white rounded-xl border border-slate-200/90 border-t-4 border-t-amber-500 p-4 shadow-sm flex flex-col justify-between">
+            <div>
+              <div class="text-[10px] font-bold uppercase tracking-wider text-slate-500">RATA-RATA SIAP BORONG</div>
+              <div class="flex items-baseline gap-1.5 mt-1">
+                <span id="kpi4Value" class="text-2xl font-extrabold text-slate-900 tracking-tight">0,0</span>
+                <span class="text-xs font-medium text-slate-500">hari/bulan</span>
+              </div>
+              <div id="kpi4Sub" class="text-[11px] text-slate-500 mt-0.5">0,0% dari HK budget · 0 kali dapat TAPRO SB</div>
+              <div id="kpi4Delta" class="text-[11px] font-semibold mt-1.5 flex items-center gap-1 text-slate-500">-</div>
+            </div>
+            <div class="mt-2">
+              <div class="h-10 w-full">
+                <canvas id="sparkline4"></canvas>
+              </div>
+              <div class="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between">
+                <span id="kpi4Badge" class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800">Status: Waspada</span>
+                <span class="text-[10px] text-slate-400 font-medium">Target ≥ 17 hr</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- KPI 5: OER AKTUAL VS BUDGET -->
+          <div id="kpiCard5" class="bg-white rounded-xl border border-slate-200/90 border-t-4 border-t-amber-500 p-4 shadow-sm flex flex-col justify-between">
+            <div>
+              <div class="text-[10px] font-bold uppercase tracking-wider text-slate-500">OER AKTUAL VS BUDGET</div>
+              <div id="kpi5Value" class="text-2xl font-extrabold text-slate-900 mt-1 tracking-tight">0,00%</div>
+              <div id="kpi5Sub" class="text-[11px] text-slate-500 mt-0.5">Budget 0,00% · selisih 0,00 poin</div>
+              <div id="kpi5Delta" class="text-[11px] font-semibold mt-1.5 flex items-center gap-1 text-slate-500">-</div>
+            </div>
+            <div class="mt-2">
+              <div class="h-10 w-full">
+                <canvas id="sparkline5"></canvas>
+              </div>
+              <div class="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between">
+                <span id="kpi5Badge" class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800">Status: Waspada</span>
+                <span class="text-[10px] text-slate-400 font-medium">Selisih OER</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =================================================================== -->
+      <!-- SECTION 2: LEADERBOARD — 5 PEMANEN TAPRO TERTINGGI PER KEBUN         -->
+      <!-- =================================================================== -->
+      <section>
+        <div class="mb-3">
+          <div class="flex items-center gap-2">
+            <span class="w-1 h-4 bg-emerald-700 rounded-full"></span>
+            <h2 class="text-xs sm:text-sm font-extrabold tracking-tight text-emerald-950">
+              5 Pemanen TAPRO Tertinggi per Kebun (Inti & Plasma)
+            </h2>
+          </div>
+          <p class="text-[11px] text-slate-500 mt-0.5 ml-3">
+            Akumulasi TAPRO per karyawan pada periode & slicer aktif. 5 teratas tiap kebun diurutkan dari yang tertinggi. Nilai sama diurutkan menurut jumlah bulan menerima, lalu total HK aktual. Tanpa penerima TAPRO: PNK.
+          </p>
+        </div>
+
+        <div id="leaderboardGrid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+          <!-- Dynamically populated Estate Cards -->
+        </div>
+      </section>
+
+      <!-- =================================================================== -->
+      <!-- SECTION 3: MODERN ANALYTICS CHARTS (BELOW-THE-FOLD)                 -->
+      <!-- =================================================================== -->
+      <section class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        <!-- Monthly Combo Chart -->
+        <div class="lg:col-span-7 bg-white rounded-xl border border-slate-200/90 p-4 sm:p-5 shadow-sm">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
+            <div>
+              <h3 class="text-sm font-bold text-slate-900">Tren Bulanan Pembayaran TAPRO vs Kehadiran & OER</h3>
+              <p class="text-xs text-slate-500">Korelasi realisasi insentif TAPRO (Juta Rp) terhadap tingkat kehadiran HK (%) dan OER aktual (%)</p>
+            </div>
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-800 text-[11px] font-semibold self-start">
+              <i data-lucide="trending-up" class="w-3.5 h-3.5"></i> Analitik Tren
+            </span>
+          </div>
+          <div class="h-72 w-full">
+            <canvas id="monthlyTrendChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Afdeling Comparison & Recipient Breakdown -->
+        <div class="lg:col-span-5 flex flex-col gap-4">
+          <!-- Afdeling Horizontal Bar -->
+          <div class="bg-white rounded-xl border border-slate-200/90 p-4 sm:p-5 shadow-sm flex-1">
+            <div class="flex items-center justify-between mb-3">
+              <div>
+                <h3 class="text-sm font-bold text-slate-900">Komparasi TAPRO per Afdeling</h3>
+                <p class="text-xs text-slate-500">Total akumulasi TAPRO (Juta Rp) berdasarkan divisi/afdeling aktif</p>
+              </div>
+              <span class="px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-[11px] font-semibold">Per Afdeling</span>
+            </div>
+            <div class="h-44 w-full">
+              <canvas id="afdelingChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Recipient Composition Progress -->
+          <div class="bg-white rounded-xl border border-slate-200/90 p-4 shadow-sm">
+            <div class="flex items-center justify-between mb-2">
+              <h3 class="text-xs font-bold uppercase tracking-wider text-slate-700">Distribusi Status Penerimaan TAPRO</h3>
+              <span id="compositionTotalLabel" class="text-[11px] font-semibold text-slate-500">0 karyawan-bulan</span>
+            </div>
+            <div class="w-full h-3 rounded-full bg-slate-100 overflow-hidden flex my-2" id="compositionBar">
+              <div class="bg-emerald-600 h-full transition-all" style="width: 35%"></div>
+              <div class="bg-amber-400 h-full transition-all" style="width: 55%"></div>
+              <div class="bg-rose-400 h-full transition-all" style="width: 10%"></div>
+            </div>
+            <div class="grid grid-cols-3 gap-2 text-[11px] mt-2" id="compositionLegend">
+              <!-- Populated by JS -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =================================================================== -->
+      <!-- SECTION 4: INTERACTIVE EMPLOYEE DETAIL TABLE                        -->
+      <!-- =================================================================== -->
+      <section class="bg-white rounded-xl border border-slate-200/90 shadow-sm overflow-hidden">
+        <div class="p-4 sm:p-5 border-b border-slate-200 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="w-1 h-4 bg-emerald-700 rounded-full"></span>
+              <h3 class="text-sm font-extrabold text-slate-900">Rekapitulasi Akumulasi TAPRO per Karyawan</h3>
+            </div>
+            <p class="text-xs text-slate-500 mt-0.5 ml-3">
+              Menampilkan agregasi performa individu sesuai periode dan slicer yang dipilih
+            </p>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2">
+            <div class="relative">
+              <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
+              <input type="text" id="tableSearchInput" oninput="handleTableSearch()" placeholder="Cari Nama atau NIK..."
+                class="pl-8 pr-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-600 w-48 sm:w-56" />
+            </div>
+
+            <select id="tableAfdelingFilter" onchange="handleTableSearch()"
+              class="px-2.5 py-1.5 text-xs font-medium border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-emerald-600">
+              <option value="ALL">Semua Afdeling</option>
+            </select>
+
+            <button onclick="exportFilteredTableCSV()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white font-semibold text-xs transition cursor-pointer">
+              <i data-lucide="download" class="w-3.5 h-3.5"></i>
+              <span>Export CSV</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-slate-50 border-b border-slate-200 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                <th class="py-3 px-4 w-12">No</th>
+                <th class="py-3 px-4 cursor-pointer hover:text-slate-800" onclick="sortTable('nik')">NIK / ID ↕</th>
+                <th class="py-3 px-4 cursor-pointer hover:text-slate-800" onclick="sortTable('nama')">Nama Karyawan ↕</th>
+                <th class="py-3 px-4 cursor-pointer hover:text-slate-800" onclick="sortTable('estate')">Kebun / Afdeling ↕</th>
+                <th class="py-3 px-4 text-center cursor-pointer hover:text-slate-800" onclick="sortTable('monthsReceived')">Bln Terima ↕</th>
+                <th class="py-3 px-4 text-right cursor-pointer hover:text-slate-800" onclick="sortTable('hkRatio')">Kehadiran HK ↕</th>
+                <th class="py-3 px-4 text-right cursor-pointer hover:text-slate-800" onclick="sortTable('avgSiapBorong')">Rata² Siap Borong ↕</th>
+                <th class="py-3 px-4 text-right cursor-pointer hover:text-slate-800" onclick="sortTable('avgOer')">Rata² OER ↕</th>
+                <th class="py-3 px-4 text-right cursor-pointer hover:text-slate-800" onclick="sortTable('totalTapro')">Total TAPRO ↕</th>
+                <th class="py-3 px-4 text-center">Kategori</th>
+              </tr>
+            </thead>
+            <tbody id="employeeTableBody" class="divide-y divide-slate-100 text-xs">
+              <!-- Populated dynamically -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination Controls -->
+        <div class="px-4 py-3 bg-slate-50/70 border-t border-slate-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs text-slate-600">
+          <div id="tablePaginationInfo">Menampilkan 0 - 0 dari 0 karyawan</div>
+          <div class="flex items-center gap-1.5">
+            <button id="btnPrevPage" onclick="changeTablePage(-1)" class="px-2.5 py-1 rounded border border-slate-300 bg-white hover:bg-slate-50 disabled:opacity-40 font-medium cursor-pointer">Sebelumnya</button>
+            <span id="tablePageIndicator" class="px-2 font-semibold text-slate-800">Hal 1 / 1</span>
+            <button id="btnNextPage" onclick="changeTablePage(1)" class="px-2.5 py-1 rounded border border-slate-300 bg-white hover:bg-slate-50 disabled:opacity-40 font-medium cursor-pointer">Berikutnya</button>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="bg-white border-t border-slate-200 py-3 px-4 sm:px-6 text-[11px] text-slate-500">
+      <div class="max-w-[1600px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
+        <div>&copy; 2026 <strong class="text-slate-700">PT. Cipta Davia Mandiri — Kelinjau Estate</strong>. Sistem Monitoring Produktivitas & Insentif TAPRO Panen.</div>
+        <div>Mode Penyimpanan: <span id="footerStorageMode" class="font-semibold text-emerald-700">Hybrid Static + IndexedDB Client</span></div>
+      </div>
+    </footer>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- FORMAL CORPORATE REPORT VIEW (PRINT / EXPORT PDF ONLY)                -->
+  <!-- ===================================================================== -->
+  <div id="formalPrintReport" class="hidden print-only bg-white text-black">
+    <!-- KOP SURAT PERUSAHAAN -->
+    <div class="flex items-center justify-between pb-3 border-b-4 border-double border-slate-900">
+      <div class="flex items-center gap-4">
+        <!-- SVG Corporate Emblem -->
+        <svg width="54" height="54" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect width="64" height="64" rx="12" fill="#173e19"/>
+          <path d="M32 12C22 18 16 28 16 38C16 46 23 52 32 52C41 52 48 46 48 38C48 28 42 18 32 12Z" fill="#2e7d32"/>
+          <path d="M32 16V48M32 24L22 32M32 30L42 38M32 36L23 43" stroke="#fbbf24" stroke-width="2.5" stroke-linecap="round"/>
+        </svg>
+        <div>
+          <div class="text-lg font-extrabold tracking-wide text-slate-900 uppercase">PT. CIPTA DAVIA MANDIRI</div>
+          <div class="text-xs font-bold tracking-wider text-emerald-900 uppercase">KELINJAU ESTATE — OPERASIONAL PERKEBUNAN KELAPA SAWIT</div>
+          <div class="text-[9.5pt] text-slate-600 mt-0.5">Divisi Agronomy & Estate Management · Sistem Evaluasi Insentif TAPRO Karyawan Panen</div>
+        </div>
+      </div>
+      <div class="text-right text-[9pt] text-slate-600">
+        <div class="font-bold text-slate-900">DOKUMEN EVALUASI INTERNAL</div>
+        <div id="printDocNumber">No. Dok: CDM-KLE/TAPRO/2026</div>
+        <div id="printTimestamp">Dicetak: -</div>
+      </div>
+    </div>
+
+    <!-- REPORT TITLE & METADATA -->
+    <div class="text-center my-4">
+      <h1 class="text-base font-extrabold uppercase tracking-wide underline underline-offset-4">
+        LAPORAN EVALUASI & ANALISIS TAPRO KARYAWAN PANEN
+      </h1>
+    </div>
+
+    <table class="w-full text-[9pt] border border-slate-400 mb-4">
+      <tbody>
+        <tr class="border-b border-slate-300">
+          <td class="py-1.5 px-2.5 font-bold bg-slate-100 w-1/6">Periode Analisis</td>
+          <td class="py-1.5 px-2.5 w-2/6" id="printMetaPeriod">-</td>
+          <td class="py-1.5 px-2.5 font-bold bg-slate-100 w-1/6">Unit / Estate</td>
+          <td class="py-1.5 px-2.5 w-2/6" id="printMetaEstate">-</td>
+        </tr>
+        <tr>
+          <td class="py-1.5 px-2.5 font-bold bg-slate-100">Group / Owner</td>
+          <td class="py-1.5 px-2.5" id="printMetaGroupOwner">-</td>
+          <td class="py-1.5 px-2.5 font-bold bg-slate-100">Jabatan / Populasi</td>
+          <td class="py-1.5 px-2.5" id="printMetaJabatan">-</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- SECTION A: RINGKASAN INDIKATOR UTAMA -->
+    <div class="mb-4 print-break-inside-avoid">
+      <div class="text-xs font-bold uppercase tracking-wider text-slate-900 mb-1.5">I. Ringkasan Indikator Kinerja Utama (KPI)</div>
+      <table class="w-full text-[9pt] border-collapse border border-slate-400">
+        <thead>
+          <tr class="bg-slate-800 text-white">
+            <th class="py-1.5 px-2.5 text-left border border-slate-400">Indikator Kinerja</th>
+            <th class="py-1.5 px-2.5 text-right border border-slate-400">Realisasi Utama</th>
+            <th class="py-1.5 px-2.5 text-left border border-slate-400">Keterangan & Pembanding</th>
+            <th class="py-1.5 px-2.5 text-center border border-slate-400">Tren Bulan Terakhir</th>
+            <th class="py-1.5 px-2.5 text-center border border-slate-400">Status Evaluasi</th>
+          </tr>
+        </thead>
+        <tbody id="printKpiTableBody">
+          <!-- Populated dynamically before print -->
+        </tbody>
+      </table>
+    </div>
+
+    <!-- SECTION B: REKAPITULASI PER AFDELING -->
+    <div class="mb-4 print-break-inside-avoid">
+      <div class="text-xs font-bold uppercase tracking-wider text-slate-900 mb-1.5">II. Rekapitulasi Capaian TAPRO & Produktivitas per Afdeling</div>
+      <table class="w-full text-[9pt] border-collapse border border-slate-400">
+        <thead>
+          <tr class="bg-slate-200 text-slate-900">
+            <th class="py-1.5 px-2.5 text-left border border-slate-400">Estate / Afdeling</th>
+            <th class="py-1.5 px-2.5 text-right border border-slate-400">Jml Pemanen</th>
+            <th class="py-1.5 px-2.5 text-right border border-slate-400">Kehadiran HK (%)</th>
+            <th class="py-1.5 px-2.5 text-right border border-slate-400">Rata² Siap Borong</th>
+            <th class="py-1.5 px-2.5 text-right border border-slate-400">Rata² OER (%)</th>
+            <th class="py-1.5 px-2.5 text-right border border-slate-400">Total TAPRO Dibayarkan</th>
+          </tr>
+        </thead>
+        <tbody id="printAfdelingTableBody">
+          <!-- Populated dynamically before print -->
+        </tbody>
+      </table>
+    </div>
+
+    <!-- SECTION C: 5 PEMANEN TAPRO TERTINGGI PER KEBUN -->
+    <div class="mb-6 print-break-inside-avoid">
+      <div class="text-xs font-bold uppercase tracking-wider text-slate-900 mb-1.5">III. Daftar 5 Pemanen TAPRO Tertinggi per Kebun (Non-PNK)</div>
+      <table class="w-full text-[8.5pt] border-collapse border border-slate-400">
+        <thead>
+          <tr class="bg-slate-200 text-slate-900">
+            <th class="py-1 px-2 text-left border border-slate-400">Kebun (Kategori)</th>
+            <th class="py-1 px-2 text-center border border-slate-400">Peringkat</th>
+            <th class="py-1 px-2 text-left border border-slate-400">NIK / ID</th>
+            <th class="py-1 px-2 text-left border border-slate-400">Nama Karyawan</th>
+            <th class="py-1 px-2 text-center border border-slate-400">Afdeling</th>
+            <th class="py-1 px-2 text-center border border-slate-400">Bln Menerima</th>
+            <th class="py-1 px-2 text-right border border-slate-400">Akumulasi TAPRO</th>
+          </tr>
+        </thead>
+        <tbody id="printLeaderboardTableBody">
+          <!-- Populated dynamically before print -->
+        </tbody>
+      </table>
+    </div>
+
+    <!-- SIGNATURE BLOCK -->
+    <div class="grid grid-cols-3 gap-8 text-center text-[9.5pt] mt-6 pt-2 print-break-inside-avoid">
+      <div>
+        <div class="mb-14">Dibuat Oleh,</div>
+        <div class="font-bold underline">( ........................................ )</div>
+        <div class="text-slate-600 text-[8.5pt]">KTU / Administrasi Kebun</div>
+      </div>
+      <div>
+        <div class="mb-14">Diperiksa Oleh,</div>
+        <div class="font-bold underline">( ........................................ )</div>
+        <div class="text-slate-600 text-[8.5pt]">Asisten Kepala (Askep)</div>
+      </div>
+      <div>
+        <div class="mb-14">Disetujui Oleh,</div>
+        <div class="font-bold underline">( ........................................ )</div>
+        <div class="text-slate-600 text-[8.5pt]">Estate Manager — Kelinjau Estate</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- JAVASCRIPT ENGINE: DATA GENERATOR, INDEXEDDB, AGGREGATOR & CHARTS     -->
+  <!-- ===================================================================== -->
+  <script>
+    // =========================================================================
+    // 1. GLOBAL STATE & CONFIGURATION
+    // =========================================================================
+    const DB_NAME = 'TAPRO_CDM_KELINJAU_DB';
+    const DB_VERSION = 1;
+    const STORE_NAME = 'datasets';
+    const DATASET_KEY = 'active_tapro_dataset';
+
+    let rawDataset = [];
+    let filteredDataset = [];
+    let currentDataSourceLabel = 'Dataset Bawaan (PT. Cipta Davia Mandiri - Kelinjau Estate)';
+    let aggregatedEmployeeList = [];
+    let filteredEmployeeList = [];
+    let tableState = {
+      page: 1,
+      pageSize: 20,
+      sortKey: 'totalTapro',
+      sortDir: 'desc',
+      search: '',
+      afdeling: 'ALL'
+    };
+
+    // Chart instances
+    const sparklineCharts = {};
+    let monthlyTrendChartInstance = null;
+    let afdelingChartInstance = null;
+
+    // Formatting utilities (Indonesian locale)
+    const fmtInt = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 });
+    const fmtDec1 = new Intl.NumberFormat('id-ID', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+    const fmtDec2 = new Intl.NumberFormat('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    function formatRupiahCompact(val) {
+      if (val >= 1_000_000_000) {
+        return 'Rp ' + fmtDec2.format(val / 1_000_000_000) + ' M';
+      } else if (val >= 1_000_000) {
+        return 'Rp ' + fmtDec1.format(val / 1_000_000) + ' Jt';
+      }
+      return 'Rp ' + fmtInt.format(Math.round(val));
+    }
+
+    function formatRupiahFull(val) {
+      return 'Rp ' + fmtInt.format(Math.round(val));
+    }
+
+    function formatDateIndo(isoDate) {
+      if (!isoDate) return '-';
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+      const parts = isoDate.split('-');
+      if (parts.length !== 3) return isoDate;
+      return `${parts[2]} ${months[parseInt(parts[1], 10) - 1]} ${parts[0]}`;
+    }
+
+    function formatMonthShort(ym) {
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+      const [y, m] = ym.split('-');
+      return `${months[parseInt(m, 10) - 1]} ${y.slice(2)}`;
+    }
+
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toastContainer');
+      const colors = {
+        success: 'bg-emerald-900 text-white border-emerald-700',
+        warning: 'bg-amber-800 text-white border-amber-600',
+        error: 'bg-rose-900 text-white border-rose-700',
+        info: 'bg-slate-900 text-white border-slate-700'
+      };
+      const toast = document.createElement('div');
+      toast.className = `${colors[type] || colors.info} border px-4 py-3 rounded-lg shadow-lg text-xs font-medium flex items-center justify-between gap-3 transition-all duration-300`;
+      toast.innerHTML = `<span>${message}</span><button onclick="this.parentElement.remove()" class="text-white/70 hover:text-white font-bold">✕</button>`;
+      container.appendChild(toast);
+      setTimeout(() => {
+        if (toast.parentElement) toast.remove();
+      }, 4500);
+    }
+
+    // =========================================================================
+    // 2. DETERMINISTIC DEFAULT DATASET GENERATOR (PT. CIPTA DAVIA MANDIRI)
+    // =========================================================================
+    function generateDefaultDataset() {
+      // Seeded PRNG for consistent executive presentation numbers
+      let seed = 20260930;
+      function rand() {
+        seed = (seed * 1664525 + 1013904223) % 4294967296;
+        return seed / 4294967296;
+      }
+
+      const firstNames = [
+        'DARMAN', 'RIDWAN', 'ABD RAKIB', 'YANI', 'FERDI YOHANIS SIKI',
+        'SAPRIADI NURDIN', 'IWAN SAMSUDIN', 'FIRMAN', 'PETRUS MAKUNIMAU', 'AMILUDDIN',
+        'DANIEL', 'FAJAR WAHYU PURNOMO', 'DANIEL BURAK', 'KIYATNO', 'VERIANUS SONDOK',
+        'ROBERD BANGNGU', 'AMIRUDIN', 'MUHAMMAD RISKI', 'DARMAWAN', 'SABRI',
+        'HENDRA SAPUTRA', 'SULAIMAN', 'YOHANES BAPTISTA', 'RUSLIADI', 'ARIFIN',
+        'HERMANSYAH', 'JUMADI', 'SYAHRUL', 'MUHAMMAD ARIF', 'LUKMAN HAKIM',
+        'ANDI PRATAMA', 'AGUS SALIM', 'RAHMAT HIDAYAT', 'SUDIRMAN', 'BASRI',
+        'MUSTAFA', 'HASANUDDIN', 'ZULKIFLI', 'IRWAN SYAHPUTRA', 'DEDI KURNIAWAN',
+        'EKO PRASETYO', 'BAMBANG SUTRISNO', 'WAHYUDI', 'RUDI HARTONO', 'SUGIANTO',
+        'SUPRIADI', 'NURDIN', 'ISMAIL', 'RAMLI', 'MUKHLIS'
+      ];
+
+      const lastNames = [
+        '', 'KUSUMA', 'PRATAMA', 'WIJAYA', 'SANTOSO', 'SAPUTRA', 'HIDAYAT', 'NUGROHO',
+        'SETIAWAN', 'PERMANA', 'RAMADHAN', 'AKBAR', 'MAULANA', 'PUTRA', 'SYAH'
+      ];
+
+      // Estates configuration: Kelinjau Estate (Inti & Plasma) + 2 comparative estates
+      const estates = [
+        {
+          code: 'KLE',
+          label: 'KLE (Kelinjau Estate)',
+          group: 'CDM Group',
+          owner: 'PT. Cipta Davia Mandiri',
+          kategori: 'Inti',
+          afdelings: ['AFD01', 'AFD02', 'AFD03', 'AFD04', 'AFD05'],
+          empCount: 460,
+          oerBase: 23.65,
+          taproBoost: 1.15
+        },
+        {
+          code: 'KLP',
+          label: 'KLP (Kelinjau Plasma)',
+          group: 'CDM Group',
+          owner: 'PT. Cipta Davia Mandiri',
+          kategori: 'Plasma',
+          afdelings: ['AFD01', 'AFD02', 'AFD03'],
+          empCount: 310,
+          oerBase: 23.10,
+          taproBoost: 0.92
+        },
+        {
+          code: 'KKE',
+          label: 'KKE (E032)',
+          group: 'CDM Group',
+          owner: 'PT. Cipta Davia Mandiri',
+          kategori: 'Inti',
+          afdelings: ['AFD01', 'AFD02', 'AFD03', 'AFD04', 'AFD05'],
+          empCount: 410,
+          oerBase: 23.52,
+          taproBoost: 1.05
+        },
+        {
+          code: 'LKE',
+          label: 'LKE (E031)',
+          group: 'CDM Group',
+          owner: 'PT. Cipta Davia Mandiri',
+          kategori: 'Inti',
+          afdelings: ['AFD01', 'AFD02', 'AFD03', 'AFD04'],
+          empCount: 380,
+          oerBase: 23.45,
+          taproBoost: 0.98
+        }
+      ];
+
+      // 12 months: Okt 2025 - Sep 2026
+      const months = [
+        { ym: '2025-10', date: '2025-10-15', hkBudget: 25, oerAdj: 0.12, seasonMult: 1.04 },
+        { ym: '2025-11', date: '2025-11-15', hkBudget: 25, oerAdj: 0.08, seasonMult: 1.02 },
+        { ym: '2025-12', date: '2025-12-15', hkBudget: 24, oerAdj: 0.05, seasonMult: 0.98 },
+        { ym: '2026-01', date: '2026-01-15', hkBudget: 25, oerAdj: -0.04, seasonMult: 0.93 },
+        { ym: '2026-02', date: '2026-02-15', hkBudget: 23, oerAdj: -0.08, seasonMult: 0.90 },
+        { ym: '2026-03', date: '2026-03-15', hkBudget: 25, oerAdj: -0.02, seasonMult: 0.95 },
+        { ym: '2026-04', date: '2026-04-15', hkBudget: 24, oerAdj: 0.01, seasonMult: 0.97 },
+        { ym: '2026-05', date: '2026-05-15', hkBudget: 25, oerAdj: 0.04, seasonMult: 1.01 },
+        { ym: '2026-06', date: '2026-06-15', hkBudget: 25, oerAdj: 0.06, seasonMult: 1.03 },
+        { ym: '2026-07', date: '2026-07-15', hkBudget: 26, oerAdj: 0.09, seasonMult: 1.08 },
+        { ym: '2026-08', date: '2026-08-15', hkBudget: 25, oerAdj: 0.03, seasonMult: 1.06 },
+        { ym: '2026-09', date: '2026-09-15', hkBudget: 25, oerAdj: -0.07, seasonMult: 0.97 }
+      ];
+
+      const records = [];
+      let globalEmpIdx = 1000;
+
+      estates.forEach((est) => {
+        // Create employee roster for this estate
+        const employees = [];
+        for (let i = 0; i < est.empCount; i++) {
+          globalEmpIdx++;
+          const fName = firstNames[(i + globalEmpIdx) % firstNames.length];
+          const lName = i < 25 ? '' : lastNames[(i * 3 + globalEmpIdx) % lastNames.length];
+          const fullName = lName ? `${fName} ${lName}` : fName;
+          const afd = est.afdelings[i % est.afdelings.length];
+          const nik = `E0322${String(200000 + globalEmpIdx * 17).slice(0, 9)}`;
+          const jabatan = i % 18 === 0 ? 'MANDOR PANEN' : 'KARYAWAN PANEN';
+          // Top performers get higher skill factor
+          const skillFactor = i < 8 ? (1.38 - i * 0.03) : (0.62 + rand() * 0.58);
+          // ~4% employees have PNK status (excluded from leaderboard)
+          const isPNK = (i > 12 && rand() < 0.04);
+          employees.push({ nik, fullName, afd, jabatan, skillFactor, isPNK });
+        }
+
+        months.forEach((m) => {
+          employees.forEach((emp) => {
+            // 92% active in any given month
+            if (rand() > 0.92 && emp.skillFactor < 1.15) return;
+
+            const hkBudget = m.hkBudget;
+            const rawHk = hkBudget * (0.72 + emp.skillFactor * 0.24) * (0.92 + rand() * 0.14);
+            const hkAktual = Math.min(hkBudget + 1, Math.max(8, Math.round(rawHk)));
+
+            const rawSb = hkAktual * (0.68 + emp.skillFactor * 0.25) * m.seasonMult;
+            const siapBorong = Math.min(hkAktual, Math.max(0, Math.round(rawSb)));
+
+            const oerBudget = Number((est.oerBase + 0.05).toFixed(2));
+            const oerAktual = Number((est.oerBase + m.oerAdj + (rand() - 0.5) * 0.35).toFixed(2));
+
+            // Determine TAPRO payout
+            let nilaiTapro = 0;
+            const ratioSb = siapBorong / hkBudget;
+            if (!emp.isPNK && ratioSb >= 0.62 && hkAktual >= 18) {
+              const baseBonus = (siapBorong - 14) * 32000 * est.taproBoost * m.seasonMult;
+              const qualityBonus = oerAktual >= oerBudget ? 45000 : 15000;
+              nilaiTapro = Math.max(75000, Math.round((baseBonus + qualityBonus + rand() * 55000) / 5000) * 5000);
+            }
+
+            records.push({
+              periode: m.date,
+              ym: m.ym,
+              group: est.group,
+              owner: est.owner,
+              estateCode: est.code,
+              estate: est.label,
+              kategori: est.kategori,
+              afdeling: emp.afd,
+              nik: emp.nik,
+              nama: emp.fullName,
+              jabatan: emp.jabatan,
+              hkBudget,
+              hkAktual,
+              siapBorong,
+              oerBudget,
+              oerAktual,
+              nilaiTapro,
+              statusKhusus: emp.isPNK ? 'PNK' : 'NORMAL'
+            });
+          });
+        });
+      });
+
+      return records;
+    }
+
+    // =========================================================================
+    // 3. INDEXEDDB PERSISTENCE LAYER (OPSI C — HYBRID)
+    // =========================================================================
+    function openDatabase() {
+      return new Promise((resolve, reject) => {
+        if (!window.indexedDB) {
+          reject(new Error('Browser tidak mendukung IndexedDB'));
+          return;
+        }
+        const req = indexedDB.open(DB_NAME, DB_VERSION);
+        req.onupgradeneeded = (e) => {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains(STORE_NAME)) {
+            db.createObjectStore(STORE_NAME);
+          }
+        };
+        req.onsuccess = (e) => resolve(e.target.result);
+        req.onerror = (e) => reject(e.target.error);
+      });
+    }
+
+    async function loadDatasetFromIndexedDB() {
+      try {
+        const db = await openDatabase();
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(STORE_NAME, 'readonly');
+          const store = tx.objectStore(STORE_NAME);
+          const req = store.get(DATASET_KEY);
+          req.onsuccess = () => resolve(req.result || null);
+          req.onerror = () => reject(req.error);
+        });
+      } catch (err) {
+        console.warn('IndexedDB read fallback:', err);
+        return null;
+      }
+    }
+
+    async function saveDataToIndexedDB() {
+      try {
+        const db = await openDatabase();
+        await new Promise((resolve, reject) => {
+          const tx = db.transaction(STORE_NAME, 'readwrite');
+          const store = tx.objectStore(STORE_NAME);
+          const payload = {
+            savedAt: new Date().toLocaleString('id-ID'),
+            sourceLabel: currentDataSourceLabel,
+            records: rawDataset
+          };
+          const req = store.put(payload, DATASET_KEY);
+          req.onsuccess = () => resolve();
+          req.onerror = () => reject(req.error);
+        });
+        document.getElementById('footerStorageMode').textContent = `Tersimpan di IndexedDB (${fmtInt.format(rawDataset.length)} baris)`;
+        showToast(`Berhasil menyimpan ${fmtInt.format(rawDataset.length)} baris data ke browser (IndexedDB).`, 'success');
+      } catch (err) {
+        showToast('Gagal menyimpan data ke IndexedDB: ' + err.message, 'error');
+      }
+    }
+
+    async function clearSavedData() {
+      try {
+        const db = await openDatabase();
+        await new Promise((resolve, reject) => {
+          const tx = db.transaction(STORE_NAME, 'readwrite');
+          const store = tx.objectStore(STORE_NAME);
+          const req = store.delete(DATASET_KEY);
+          req.onsuccess = () => resolve();
+          req.onerror = () => reject(req.error);
+        });
+        rawDataset = generateDefaultDataset();
+        currentDataSourceLabel = 'Dataset Bawaan (PT. Cipta Davia Mandiri - Kelinjau Estate)';
+        document.getElementById('footerStorageMode').textContent = 'Hybrid Static + IndexedDB Client';
+        populateFilterOptions();
+        resetFilterInputs();
+        applyFilters();
+        showToast('Data tersimpan dihapus. Dashboard dikembalikan ke dataset default Kelinjau Estate.', 'info');
+      } catch (err) {
+        showToast('Gagal menghapus cache: ' + err.message, 'error');
+      }
+    }
+
+    // =========================================================================
+    // 4. EXCEL UPLOAD & TEMPLATE DOWNLOAD (SHEETJS)
+    // =========================================================================
+    document.getElementById('excelFileInput').addEventListener('change', function (e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function (evt) {
+        try {
+          const data = new Uint8Array(evt.target.result);
+          const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+          const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+          const jsonRows = XLSX.utils.sheet_to_json(firstSheet, { defval: '' });
+
+          if (!jsonRows || jsonRows.length === 0) {
+            showToast('File Excel kosong atau tidak memiliki baris data.', 'warning');
+            return;
+          }
+
+          const normalized = normalizeUploadedRows(jsonRows);
+          if (normalized.length === 0) {
+            showToast('Format kolom tidak dikenali. Gunakan tombol "Template Excel" sebagai acuan.', 'error');
+            return;
+          }
+
+          rawDataset = normalized;
+          const nowStr = new Date().toLocaleString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+          currentDataSourceLabel = `File ${file.name} (${nowStr})`;
+          document.getElementById('headerSubtitleInfo').textContent = `Sumber Data: ${file.name} (${fmtInt.format(rawDataset.length)} baris)`;
+
+          populateFilterOptions();
+          resetFilterInputs();
+          applyFilters();
+          showToast(`Berhasil memuat ${fmtInt.format(rawDataset.length)} baris dari "${file.name}". Klik "Save" untuk menyimpan permanen di browser.`, 'success');
+        } catch (err) {
+          console.error(err);
+          showToast('Terjadi kesalahan saat membaca file Excel: ' + err.message, 'error');
+        } finally {
+          e.target.value = '';
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    });
+
+    function normalizeUploadedRows(rows) {
+      const result = [];
+      for (let i = 0; i < rows.length; i++) {
+        const r = rows[i];
+        // Case-insensitive key lookup helper
+        const getVal = (...keys) => {
+          for (const k of keys) {
+            if (r[k] !== undefined && r[k] !== '') return r[k];
+            const foundKey = Object.keys(r).find(rk => rk.trim().toLowerCase().replace(/[\s_]+/g, '') === k.toLowerCase().replace(/[\s_]+/g, ''));
+            if (foundKey && r[foundKey] !== undefined && r[foundKey] !== '') return r[foundKey];
+          }
+          return null;
+        };
+
+        let rawDate = getVal('Periode', 'Tanggal', 'Date', 'Bulan');
+        let isoDate = '2026-09-01';
+        if (rawDate instanceof Date && !isNaN(rawDate)) {
+          isoDate = rawDate.toISOString().slice(0, 10);
+        } else if (typeof rawDate === 'string' && rawDate.trim()) {
+          const clean = rawDate.trim();
+          if (/^\d{4}-\d{2}-\d{2}/.test(clean)) {
+            isoDate = clean.slice(0, 10);
+          } else if (/^\d{2}\/\d{2}\/\d{4}/.test(clean)) {
+            const [d, m, y] = clean.split('/');
+            isoDate = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+          } else if (/^\d{4}-\d{2}$/.test(clean)) {
+            isoDate = `${clean}-01`;
+          }
+        }
+
+        const nama = String(getVal('Nama_Karyawan', 'Nama Karyawan', 'Nama', 'Employee') || '').trim();
+        if (!nama) continue;
+
+        const estateRaw = String(getVal('Estate', 'Kebun', 'Unit') || 'KLE (Kelinjau Estate)').trim();
+        const estateCode = estateRaw.split(/[\s(]/)[0].toUpperCase();
+
+        result.push({
+          periode: isoDate,
+          ym: isoDate.slice(0, 7),
+          group: String(getVal('Group', 'Grup') || 'CDM Group').trim(),
+          owner: String(getVal('Owner', 'Perusahaan', 'PT') || 'PT. Cipta Davia Mandiri').trim(),
+          estateCode: estateCode,
+          estate: estateRaw,
+          kategori: String(getVal('Kategori', 'Jenis_Kebun', 'Tipe') || 'Inti').trim(),
+          afdeling: String(getVal('Afdeling', 'Divisi', 'AFD') || 'AFD01').trim().toUpperCase(),
+          nik: String(getVal('NIK', 'ID', 'ID_Karyawan') || `EMP-${1000 + i}`).trim(),
+          nama: nama.toUpperCase(),
+          jabatan: String(getVal('Jabatan', 'Posisi', 'Role') || 'KARYAWAN PANEN').trim().toUpperCase(),
+          hkBudget: Number(getVal('HK_Budget', 'HK Budget', 'Budget_HK')) || 25,
+          hkAktual: Number(getVal('HK_Aktual', 'HK Aktual', 'Aktual_HK')) || 0,
+          siapBorong: Number(getVal('Hari_Siap_Borong', 'Siap_Borong', 'Siap Borong')) || 0,
+          oerBudget: Number(getVal('OER_Budget', 'OER Budget')) || 23.50,
+          oerAktual: Number(getVal('OER_Aktual', 'OER Aktual', 'OER')) || 23.50,
+          nilaiTapro: Number(getVal('Nilai_TAPRO', 'TAPRO', 'Total_TAPRO', 'Nominal')) || 0,
+          statusKhusus: String(getVal('Status_Khusus', 'Status', 'Keterangan') || 'NORMAL').trim().toUpperCase()
+        });
+      }
+      return result;
+    }
+
+    function downloadExcelTemplate() {
+      const sampleRows = [
+        {
+          Periode: '2026-09-01',
+          Group: 'CDM Group',
+          Owner: 'PT. Cipta Davia Mandiri',
+          Estate: 'KLE (Kelinjau Estate)',
+          Kategori: 'Inti',
+          Afdeling: 'AFD01',
+          NIK: 'E0322230601037',
+          Nama_Karyawan: 'DARMAN',
+          Jabatan: 'KARYAWAN PANEN',
+          HK_Budget: 25,
+          HK_Aktual: 24,
+          Hari_Siap_Borong: 21,
+          OER_Budget: 23.70,
+          OER_Aktual: 23.85,
+          Nilai_TAPRO: 450000,
+          Status_Khusus: 'NORMAL'
+        },
+        {
+          Periode: '2026-09-01',
+          Group: 'CDM Group',
+          Owner: 'PT. Cipta Davia Mandiri',
+          Estate: 'KLE (Kelinjau Estate)',
+          Kategori: 'Inti',
+          Afdeling: 'AFD02',
+          NIK: 'E0322240400481',
+          Nama_Karyawan: 'RIDWAN',
+          Jabatan: 'KARYAWAN PANEN',
+          HK_Budget: 25,
+          HK_Aktual: 23,
+          Hari_Siap_Borong: 19,
+          OER_Budget: 23.70,
+          OER_Aktual: 23.62,
+          Nilai_TAPRO: 390000,
+          Status_Khusus: 'NORMAL'
+        },
+        {
+          Periode: '2026-09-01',
+          Group: 'CDM Group',
+          Owner: 'PT. Cipta Davia Mandiri',
+          Estate: 'KLP (Kelinjau Plasma)',
+          Kategori: 'Plasma',
+          Afdeling: 'AFD01',
+          NIK: 'E0402251204736',
+          Nama_Karyawan: 'ROBERD BANGNGU',
+          Jabatan: 'KARYAWAN PANEN',
+          HK_Budget: 25,
+          HK_Aktual: 22,
+          Hari_Siap_Borong: 18,
+          OER_Budget: 23.15,
+          OER_Aktual: 23.10,
+          Nilai_TAPRO: 310000,
+          Status_Khusus: 'NORMAL'
+        }
+      ];
+
+      const ws = XLSX.utils.json_to_sheet(sampleRows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Data_TAPRO');
+      XLSX.writeFile(wb, 'Template_TAPRO_PT_Cipta_Davia_Mandiri.xlsx');
+      showToast('Template Excel berhasil diunduh.', 'success');
+    }
+
+    // =========================================================================
+    // 5. FILTER / SLICER MANAGEMENT
+    // =========================================================================
+    function populateFilterOptions() {
+      const groups = new Set();
+      const owners = new Set();
+      const estates = new Set();
+      const jabatans = new Set();
+      let minDate = '9999-12-31';
+      let maxDate = '0000-01-01';
+
+      for (let i = 0; i < rawDataset.length; i++) {
+        const r = rawDataset[i];
+        groups.add(r.group);
+        owners.add(r.owner);
+        estates.add(r.estate);
+        jabatans.add(r.jabatan);
+        if (r.periode < minDate) minDate = r.periode;
+        if (r.periode > maxDate) maxDate = r.periode;
+      }
+
+      fillSelect('filterGroup', Array.from(groups).sort(), 'Semua Group');
+      fillSelect('filterOwner', Array.from(owners).sort(), 'Semua Owner');
+      fillSelect('filterEstate', Array.from(estates).sort(), 'Semua Estate');
+      fillSelect('filterJabatan', Array.from(jabatans).sort(), 'Semua Jabatan', jabatans.has('KARYAWAN PANEN') ? 'KARYAWAN PANEN' : 'ALL');
+
+      if (rawDataset.length > 0) {
+        // Snap start/end date bounds cleanly
+        const startBound = minDate.slice(0, 7) + '-01';
+        const endBoundParts = maxDate.split('-');
+        const lastDay = new Date(Number(endBoundParts[0]), Number(endBoundParts[1]), 0).getDate();
+        const endBound = `${endBoundParts[0]}-${endBoundParts[1]}-${String(lastDay).padStart(2, '0')}`;
+        document.getElementById('filterStartDate').value = startBound;
+        document.getElementById('filterEndDate').value = endBound;
+      }
+    }
+
+    function fillSelect(selectId, items, allLabel, defaultVal = 'ALL') {
+      const sel = document.getElementById(selectId);
+      sel.innerHTML = `<option value="ALL">${allLabel}</option>`;
+      items.forEach(item => {
+        const opt = document.createElement('option');
+        opt.value = item;
+        opt.textContent = item;
+        sel.appendChild(opt);
+      });
+      sel.value = defaultVal;
+    }
+
+    function handleDatePresetChange() {
+      const preset = document.getElementById('filterDatePreset').value;
+      if (rawDataset.length === 0) return;
+
+      let minDate = '9999-12-31';
+      let maxDate = '0000-01-01';
+      for (const r of rawDataset) {
+        if (r.periode < minDate) minDate = r.periode;
+        if (r.periode > maxDate) maxDate = r.periode;
+      }
+
+      const [maxY, maxM] = maxDate.split('-').map(Number);
+      const lastDayOfMax = new Date(maxY, maxM, 0).getDate();
+      const endIso = `${maxY}-${String(maxM).padStart(2, '0')}-${String(lastDayOfMax).padStart(2, '0')}`;
+
+      if (preset === 'ALL') {
+        document.getElementById('filterStartDate').value = minDate.slice(0, 7) + '-01';
+        document.getElementById('filterEndDate').value = endIso;
+      } else {
+        const monthsBack = preset === '12M' ? 11 : preset === '6M' ? 5 : preset === '3M' ? 2 : 0;
+        const startObj = new Date(maxY, maxM - 1 - monthsBack, 1);
+        const startIso = `${startObj.getFullYear()}-${String(startObj.getMonth() + 1).padStart(2, '0')}-01`;
+        document.getElementById('filterStartDate').value = startIso;
+        document.getElementById('filterEndDate').value = endIso;
+      }
+      applyFilters();
+    }
+
+    function resetFilterInputs() {
+      document.getElementById('filterGroup').value = 'ALL';
+      document.getElementById('filterOwner').value = 'ALL';
+      document.getElementById('filterEstate').value = 'ALL';
+      const jabSel = document.getElementById('filterJabatan');
+      const hasPanen = Array.from(jabSel.options).some(o => o.value === 'KARYAWAN PANEN');
+      jabSel.value = hasPanen ? 'KARYAWAN PANEN' : 'ALL';
+      document.getElementById('filterDatePreset').value = 'ALL';
+      document.getElementById('tableSearchInput').value = '';
+      document.getElementById('tableAfdelingFilter').value = 'ALL';
+      tableState.search = '';
+      tableState.afdeling = 'ALL';
+      tableState.page = 1;
+    }
+
+    function resetFiltersAndData() {
+      populateFilterOptions();
+      resetFilterInputs();
+      applyFilters();
+      showToast('Filter dan tampilan dashboard telah di-refresh.', 'info');
+    }
+
+    // =========================================================================
+    // 6. SINGLE-PASS FILTER & AGGREGATION ENGINE
+    // =========================================================================
+    function applyFilters() {
+      const startDate = document.getElementById('filterStartDate').value || '0000-01-01';
+      const endDate = document.getElementById('filterEndDate').value || '9999-12-31';
+      const groupVal = document.getElementById('filterGroup').value;
+      const ownerVal = document.getElementById('filterOwner').value;
+      const estateVal = document.getElementById('filterEstate').value;
+      const jabatanVal = document.getElementById('filterJabatan').value;
+
+      filteredDataset = [];
+
+      // Aggregators
+      let totalTapro = 0;
+      let recipientRowCount = 0; // karyawan-bulan penerima TAPRO
+      let totalHkAktual = 0;
+      let totalHkBudget = 0;
+      let totalSiapBorong = 0;
+      let sumOerAktual = 0;
+      let sumOerBudget = 0;
+
+      const distinctEmployees = new Set();
+      const recipientEmployees = new Set();
+      const distinctMonths = new Set();
+
+      // Monthly map: ym -> { tapro, rowCount, recipientCount, hkAktual, hkBudget, siapBorong, oerAktualSum, oerBudgetSum }
+      const monthlyMap = new Map();
+
+      // Estate Leaderboard map: estate -> { estate, estateCode, group, kategori, empMap: Map<nik, empObj> }
+      const estateMap = new Map();
+
+      // Afdeling map: "ESTATE_CODE - AFD" -> { label, tapro, hkAktual, hkBudget, siapBorong, oerSum, count, empSet }
+      const afdelingMap = new Map();
+      const afdelingSetForTable = new Set();
+
+      // Employee cumulative map: nik -> empSummary
+      const empSummaryMap = new Map();
+
+      // Single pass loop over rawDataset
+      for (let i = 0; i < rawDataset.length; i++) {
+        const r = rawDataset[i];
+        if (r.periode < startDate || r.periode > endDate) continue;
+        if (groupVal !== 'ALL' && r.group !== groupVal) continue;
+        if (ownerVal !== 'ALL' && r.owner !== ownerVal) continue;
+        if (estateVal !== 'ALL' && r.estate !== estateVal) continue;
+        if (jabatanVal !== 'ALL' && r.jabatan !== jabatanVal) continue;
+
+        filteredDataset.push(r);
+
+        const isRecipient = r.nilaiTapro > 0;
+        totalTapro += r.nilaiTapro;
+        if (isRecipient) {
+          recipientRowCount++;
+          recipientEmployees.add(r.nik);
+        }
+        totalHkAktual += r.hkAktual;
+        totalHkBudget += r.hkBudget;
+        totalSiapBorong += r.siapBorong;
+        sumOerAktual += r.oerAktual;
+        sumOerBudget += r.oerBudget;
+
+        distinctEmployees.add(r.nik);
+        distinctMonths.add(r.ym);
+        afdelingSetForTable.add(`${r.estateCode} - ${r.afdeling}`);
+
+        // Monthly aggregation
+        let mObj = monthlyMap.get(r.ym);
+        if (!mObj) {
+          mObj = { ym: r.ym, tapro: 0, rowCount: 0, recipientCount: 0, hkAktual: 0, hkBudget: 0, siapBorong: 0, oerAktualSum: 0, oerBudgetSum: 0 };
+          monthlyMap.set(r.ym, mObj);
+        }
+        mObj.tapro += r.nilaiTapro;
+        mObj.rowCount++;
+        if (isRecipient) mObj.recipientCount++;
+        mObj.hkAktual += r.hkAktual;
+        mObj.hkBudget += r.hkBudget;
+        mObj.siapBorong += r.siapBorong;
+        mObj.oerAktualSum += r.oerAktual;
+        mObj.oerBudgetSum += r.oerBudget;
+
+        // Afdeling aggregation
+        const afdKey = `${r.estateCode} - ${r.afdeling}`;
+        let aObj = afdelingMap.get(afdKey);
+        if (!aObj) {
+          aObj = { label: afdKey, tapro: 0, hkAktual: 0, hkBudget: 0, siapBorong: 0, oerSum: 0, count: 0, empSet: new Set() };
+          afdelingMap.set(afdKey, aObj);
+        }
+        aObj.tapro += r.nilaiTapro;
+        aObj.hkAktual += r.hkAktual;
+        aObj.hkBudget += r.hkBudget;
+        aObj.siapBorong += r.siapBorong;
+        aObj.oerSum += r.oerAktual;
+        aObj.count++;
+        aObj.empSet.add(r.nik);
+
+        // Employee cumulative summary (for table & leaderboard)
+        let eObj = empSummaryMap.get(r.nik);
+        if (!eObj) {
+          eObj = {
+            nik: r.nik,
+            nama: r.nama,
+            estate: r.estate,
+            estateCode: r.estateCode,
+            group: r.group,
+            kategori: r.kategori,
+            afdeling: r.afdeling,
+            jabatan: r.jabatan,
+            totalTapro: 0,
+            monthsActive: 0,
+            monthsReceived: 0,
+            hkAktual: 0,
+            hkBudget: 0,
+            siapBorongSum: 0,
+            oerSum: 0,
+            statusKhusus: r.statusKhusus
+          };
+          empSummaryMap.set(r.nik, eObj);
+        }
+        eObj.totalTapro += r.nilaiTapro;
+        eObj.monthsActive++;
+        if (isRecipient) eObj.monthsReceived++;
+        eObj.hkAktual += r.hkAktual;
+        eObj.hkBudget += r.hkBudget;
+        eObj.siapBorongSum += r.siapBorong;
+        eObj.oerSum += r.oerAktual;
+        if (r.statusKhusus === 'PNK') eObj.statusKhusus = 'PNK';
+      }
+
+      // Group employees into Estate Leaderboards (excluding PNK & zero TAPRO)
+      empSummaryMap.forEach((emp) => {
+        if (!estateMap.has(emp.estate)) {
+          estateMap.set(emp.estate, {
+            estate: emp.estate,
+            estateCode: emp.estateCode,
+            group: emp.group.replace(' Group', ''),
+            kategori: emp.kategori,
+            topEmployees: []
+          });
+        }
+        if (emp.statusKhusus !== 'PNK' && emp.totalTapro > 0) {
+          estateMap.get(emp.estate).topEmployees.push(emp);
+        }
+      });
+
+      // Sort each estate's leaderboard:
+      // 1. totalTapro desc -> 2. monthsReceived desc -> 3. hkAktual desc
+      estateMap.forEach((estGroup) => {
+        estGroup.topEmployees.sort((a, b) => {
+          if (b.totalTapro !== a.totalTapro) return b.totalTapro - a.totalTapro;
+          if (b.monthsReceived !== a.monthsReceived) return b.monthsReceived - a.monthsReceived;
+          return b.hkAktual - a.hkAktual;
+        });
+        estGroup.topEmployees = estGroup.topEmployees.slice(0, 5);
+      });
+
+      // Sort monthly series chronologically
+      const sortedMonths = Array.from(monthlyMap.values()).sort((a, b) => a.ym.localeCompare(b.ym));
+
+      // Update Status Pills
+      updateStatusPills(startDate, endDate, groupVal, ownerVal, estateVal, jabatanVal, distinctMonths.size);
+
+      // Update 5 KPI Cards & Sparklines
+      const kpiMetrics = updateKPICards({
+        totalRows: filteredDataset.length,
+        totalTapro,
+        recipientRowCount,
+        recipientEmpCount: recipientEmployees.size,
+        totalEmpCount: distinctEmployees.size,
+        totalHkAktual,
+        totalHkBudget,
+        totalSiapBorong,
+        sumOerAktual,
+        sumOerBudget,
+        sortedMonths
+      });
+
+      // Render Leaderboards
+      renderLeaderboards(Array.from(estateMap.values()));
+
+      // Render Below-the-Fold Charts
+      renderMonthlyTrendChart(sortedMonths);
+      renderAfdelingChart(Array.from(afdelingMap.values()));
+      renderRecipientComposition(filteredDataset.length, recipientRowCount, empSummaryMap);
+
+      // Prepare & Render Employee Table
+      aggregatedEmployeeList = Array.from(empSummaryMap.values()).map(e => ({
+        ...e,
+        hkRatio: e.hkBudget > 0 ? (e.hkAktual / e.hkBudget) * 100 : 0,
+        avgSiapBorong: e.monthsActive > 0 ? e.siapBorongSum / e.monthsActive : 0,
+        avgOer: e.monthsActive > 0 ? e.oerSum / e.monthsActive : 0
+      }));
+
+      // Populate table afdeling filter options
+      const tableAfdSel = document.getElementById('tableAfdelingFilter');
+      const prevAfd = tableAfdSel.value;
+      tableAfdSel.innerHTML = '<option value="ALL">Semua Afdeling</option>';
+      Array.from(afdelingSetForTable).sort().forEach(afd => {
+        const opt = document.createElement('option');
+        opt.value = afd;
+        opt.textContent = afd;
+        tableAfdSel.appendChild(opt);
+      });
+      if (Array.from(afdelingSetForTable).includes(prevAfd)) {
+        tableAfdSel.value = prevAfd;
+      } else {
+        tableState.afdeling = 'ALL';
+      }
+
+      tableState.page = 1;
+      filterAndRenderEmployeeTable();
+
+      // Store latest summary for formal PDF report
+      window.__latestReportContext = {
+        startDate,
+        endDate,
+        groupVal,
+        ownerVal,
+        estateVal,
+        jabatanVal,
+        totalRows: filteredDataset.length,
+        kpiMetrics,
+        afdelings: Array.from(afdelingMap.values()),
+        estates: Array.from(estateMap.values())
+      };
+    }
+
+    function updateStatusPills(startDate, endDate, groupVal, ownerVal, estateVal, jabatanVal, monthCount) {
+      const bar = document.getElementById('statusPillsBar');
+      const pills = [
+        `Periode data: <strong>${formatDateIndo(startDate)} - ${formatDateIndo(endDate)}</strong> (${monthCount} bulan data, ${fmtInt.format(rawDataset.length)} baris)`,
+        `<strong>${fmtInt.format(filteredDataset.length)}</strong> record terfilter dari ${fmtInt.format(rawDataset.length)} total`,
+        `Periode: ${formatDateIndo(startDate)} - ${formatDateIndo(endDate)}`,
+        `Group: ${groupVal === 'ALL' ? 'Semua' : groupVal}`,
+        `Owner: ${ownerVal === 'ALL' ? 'Semua' : ownerVal}`,
+        `Estate: ${estateVal === 'ALL' ? 'Semua' : estateVal}`,
+        `Jabatan: ${jabatanVal === 'ALL' ? 'Semua' : jabatanVal}`,
+        `Sumber: ${currentDataSourceLabel}`
+      ];
+
+      bar.innerHTML = pills.map((p, idx) => {
+        const style = idx < 2
+          ? 'bg-amber-100/90 text-amber-950 border-amber-300'
+          : 'bg-amber-50/90 text-slate-700 border-amber-200/80';
+        return `<span class="px-2.5 py-0.5 rounded-full border ${style}">${p}</span>`;
+      }).join('');
+    }
+
+    function updateKPICards(stats) {
+      const {
+        totalRows, totalTapro, recipientRowCount, recipientEmpCount,
+        totalHkAktual, totalHkBudget, totalSiapBorong, sumOerAktual, sumOerBudget, sortedMonths
+      } = stats;
+
+      const avgTaproPerEmp = recipientEmpCount > 0 ? totalTapro / recipientEmpCount : 0;
+      const pctRecipient = totalRows > 0 ? (recipientRowCount / totalRows) * 100 : 0;
+      const pctKehadiran = totalHkBudget > 0 ? (totalHkAktual / totalHkBudget) * 100 : 0;
+      const avgHkAktual = totalRows > 0 ? totalHkAktual / totalRows : 0;
+      const avgHkBudget = totalRows > 0 ? totalHkBudget / totalRows : 0;
+      const avgSiapBorong = totalRows > 0 ? totalSiapBorong / totalRows : 0;
+      const pctSiapBorong = totalHkBudget > 0 ? (totalSiapBorong / totalHkBudget) * 100 : 0;
+      const avgOerAktual = totalRows > 0 ? sumOerAktual / totalRows : 0;
+      const avgOerBudget = totalRows > 0 ? sumOerBudget / totalRows : 0;
+      const diffOer = avgOerAktual - avgOerBudget;
+
+      // Month-over-Month (last month vs previous month)
+      const lastM = sortedMonths[sortedMonths.length - 1];
+      const prevM = sortedMonths[sortedMonths.length - 2];
+      const compLabel = (lastM && prevM) ? `${formatMonthShort(lastM.ym)} vs ${formatMonthShort(prevM.ym).split(' ')[0]}` : 'Periode aktif';
+
+      // 1. Total TAPRO
+      document.getElementById('kpi1Value').textContent = formatRupiahCompact(totalTapro);
+      document.getElementById('kpi1Sub').textContent = `${fmtInt.format(recipientEmpCount)} karyawan · rata-rata ${formatRupiahFull(avgTaproPerEmp)}/orang`;
+      document.getElementById('kpi1PeriodTag').textContent = `${sortedMonths.length} bln`;
+      let taproDeltaPct = 0;
+      if (lastM && prevM && prevM.tapro > 0) {
+        taproDeltaPct = ((lastM.tapro - prevM.tapro) / prevM.tapro) * 100;
+      }
+      renderDelta('kpi1Delta', taproDeltaPct, '%', compLabel);
+      const status1 = totalTapro > 0 ? (taproDeltaPct >= -5 ? 'Aman' : 'Waspada') : 'Kritis';
+      applyKpiStatusStyle('kpiCard1', 'kpi1Badge', status1);
+
+      // 2. % Penerima TAPRO
+      document.getElementById('kpi2Value').textContent = `${fmtDec1.format(pctRecipient)}%`;
+      document.getElementById('kpi2Sub').textContent = `${fmtInt.format(recipientRowCount)} dari ${fmtInt.format(totalRows)} karyawan-bulan`;
+      let recDeltaPoin = 0;
+      if (lastM && prevM && lastM.rowCount > 0 && prevM.rowCount > 0) {
+        recDeltaPoin = ((lastM.recipientCount / lastM.rowCount) - (prevM.recipientCount / prevM.rowCount)) * 100;
+      }
+      renderDelta('kpi2Delta', recDeltaPoin, ' poin', compLabel);
+      const status2 = pctRecipient >= 42 ? 'Aman' : pctRecipient >= 30 ? 'Waspada' : 'Kritis';
+      applyKpiStatusStyle('kpiCard2', 'kpi2Badge', status2);
+
+      // 3. Kehadiran HK
+      document.getElementById('kpi3Value').textContent = `${fmtDec1.format(pctKehadiran)}%`;
+      document.getElementById('kpi3Sub').textContent = `Rata-rata ${fmtDec1.format(avgHkAktual)} HK vs budget ${fmtDec1.format(avgHkBudget)} HK`;
+      let hkDeltaPoin = 0;
+      if (lastM && prevM && lastM.hkBudget > 0 && prevM.hkBudget > 0) {
+        hkDeltaPoin = ((lastM.hkAktual / lastM.hkBudget) - (prevM.hkAktual / prevM.hkBudget)) * 100;
+      }
+      renderDelta('kpi3Delta', hkDeltaPoin, ' poin', compLabel);
+      const status3 = pctKehadiran >= 86 ? 'Aman' : pctKehadiran >= 78 ? 'Waspada' : 'Kritis';
+      applyKpiStatusStyle('kpiCard3', 'kpi3Badge', status3);
+
+      // 4. Rata-Rata Siap Borong
+      document.getElementById('kpi4Value').textContent = fmtDec1.format(avgSiapBorong);
+      document.getElementById('kpi4Sub').textContent = `${fmtDec1.format(pctSiapBorong)}% dari HK budget · ${fmtInt.format(recipientRowCount)} kali dapat TAPRO SB`;
+      let sbDeltaPoin = 0;
+      if (lastM && prevM && lastM.hkBudget > 0 && prevM.hkBudget > 0) {
+        sbDeltaPoin = ((lastM.siapBorong / lastM.hkBudget) - (prevM.siapBorong / prevM.hkBudget)) * 100;
+      }
+      renderDelta('kpi4Delta', sbDeltaPoin, ' poin', compLabel);
+      const status4 = avgSiapBorong >= 17.0 ? 'Aman' : avgSiapBorong >= 14.5 ? 'Waspada' : 'Kritis';
+      applyKpiStatusStyle('kpiCard4', 'kpi4Badge', status4);
+
+      // 5. OER Aktual vs Budget
+      document.getElementById('kpi5Value').textContent = `${fmtDec2.format(avgOerAktual)}%`;
+      const diffSign = diffOer >= 0 ? '+' : '';
+      document.getElementById('kpi5Sub').textContent = `Budget ${fmtDec2.format(avgOerBudget)}% · selisih ${diffSign}${fmtDec2.format(diffOer)} poin`;
+      let oerDeltaPoin = 0;
+      if (lastM && prevM && lastM.rowCount > 0 && prevM.rowCount > 0) {
+        oerDeltaPoin = (lastM.oerAktualSum / lastM.rowCount) - (prevM.oerAktualSum / prevM.rowCount);
+      }
+      renderDelta('kpi5Delta', oerDeltaPoin, ' poin', compLabel, 2);
+      const status5 = diffOer >= 0 ? 'Aman' : diffOer >= -0.15 ? 'Waspada' : 'Kritis';
+      applyKpiStatusStyle('kpiCard5', 'kpi5Badge', status5);
+
+      // Render 5 Sparklines
+      const labels = sortedMonths.map(m => formatMonthShort(m.ym));
+      renderSparkline('sparkline1', labels, sortedMonths.map(m => m.tapro), status1);
+      renderSparkline('sparkline2', labels, sortedMonths.map(m => m.rowCount > 0 ? (m.recipientCount / m.rowCount) * 100 : 0), status2);
+      renderSparkline('sparkline3', labels, sortedMonths.map(m => m.hkBudget > 0 ? (m.hkAktual / m.hkBudget) * 100 : 0), status3);
+      renderSparkline('sparkline4', labels, sortedMonths.map(m => m.rowCount > 0 ? m.siapBorong / m.rowCount : 0), status4);
+      renderSparkline('sparkline5', labels, sortedMonths.map(m => m.rowCount > 0 ? m.oerAktualSum / m.rowCount : 0), status5);
+
+      return [
+        { name: 'Total TAPRO Dibayarkan', val: formatRupiahFull(totalTapro), sub: `${fmtInt.format(recipientEmpCount)} karyawan · rata-rata ${formatRupiahFull(avgTaproPerEmp)}/org`, delta: `${taproDeltaPct >= 0 ? '+' : ''}${fmtDec1.format(taproDeltaPct)}% (${compLabel})`, status: status1 },
+        { name: '% Penerima TAPRO', val: `${fmtDec1.format(pctRecipient)}%`, sub: `${fmtInt.format(recipientRowCount)} dari ${fmtInt.format(totalRows)} karyawan-bulan`, delta: `${recDeltaPoin >= 0 ? '+' : ''}${fmtDec1.format(recDeltaPoin)} poin (${compLabel})`, status: status2 },
+        { name: 'Kehadiran (HK Aktual / Budget)', val: `${fmtDec1.format(pctKehadiran)}%`, sub: `Rata-rata ${fmtDec1.format(avgHkAktual)} HK vs budget ${fmtDec1.format(avgHkBudget)} HK`, delta: `${hkDeltaPoin >= 0 ? '+' : ''}${fmtDec1.format(hkDeltaPoin)} poin (${compLabel})`, status: status3 },
+        { name: 'Rata-Rata Siap Borong', val: `${fmtDec1.format(avgSiapBorong)} hari/bln`, sub: `${fmtDec1.format(pctSiapBorong)}% dari HK budget`, delta: `${sbDeltaPoin >= 0 ? '+' : ''}${fmtDec1.format(sbDeltaPoin)} poin (${compLabel})`, status: status4 },
+        { name: 'OER Aktual vs Budget', val: `${fmtDec2.format(avgOerAktual)}%`, sub: `Budget ${fmtDec2.format(avgOerBudget)}% · selisih ${diffSign}${fmtDec2.format(diffOer)} poin`, delta: `${oerDeltaPoin >= 0 ? '+' : ''}${fmtDec2.format(oerDeltaPoin)} poin (${compLabel})`, status: status5 }
+      ];
+    }
+
+    function renderDelta(elId, val, unit, label, decimals = 1) {
+      const el = document.getElementById(elId);
+      const isUp = val >= 0;
+      const arrow = isUp ? '▲' : '▼';
+      const formatted = decimals === 2 ? fmtDec2.format(Math.abs(val)) : fmtDec1.format(Math.abs(val));
+      el.className = `text-[11px] font-semibold mt-1.5 flex items-center gap-1 ${isUp ? 'text-emerald-700' : 'text-rose-600'}`;
+      el.textContent = `${arrow} ${formatted}${unit} ${label}`;
+    }
+
+    function applyKpiStatusStyle(cardId, badgeId, status) {
+      const card = document.getElementById(cardId);
+      const badge = document.getElementById(badgeId);
+      card.classList.remove('border-t-emerald-600', 'border-t-amber-500', 'border-t-rose-600');
+      if (status === 'Aman') {
+        card.classList.add('border-t-emerald-600');
+        badge.className = 'inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800';
+      } else if (status === 'Waspada') {
+        card.classList.add('border-t-amber-500');
+        badge.className = 'inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800';
+      } else {
+        card.classList.add('border-t-rose-600');
+        badge.className = 'inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-800';
+      }
+      badge.textContent = `Status: ${status}`;
+    }
+
+    function renderSparkline(canvasId, labels, dataPoints, status) {
+      if (sparklineCharts[canvasId]) {
+        sparklineCharts[canvasId].destroy();
+      }
+      const ctx = document.getElementById(canvasId).getContext('2d');
+      const strokeColor = status === 'Aman' ? '#059669' : status === 'Waspada' ? '#d97706' : '#e11d48';
+      const fillColor = status === 'Aman' ? 'rgba(5, 150, 105, 0.12)' : status === 'Waspada' ? 'rgba(217, 119, 6, 0.12)' : 'rgba(225, 29, 72, 0.12)';
+
+      sparklineCharts[canvasId] = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            data: dataPoints,
+            borderColor: strokeColor,
+            backgroundColor: fillColor,
+            borderWidth: 2,
+            fill: true,
+            tension: 0.35,
+            pointRadius: 0,
+            pointHoverRadius: 3
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              enabled: true,
+              displayColors: false,
+              callbacks: {
+                label: (ctx) => fmtDec2.format(ctx.parsed.y)
+              }
+            }
+          },
+          scales: {
+            x: { display: false },
+            y: { display: false }
+          }
+        }
+      });
+    }
+
+    // =========================================================================
+    // 7. LEADERBOARD RENDERING (TOP 5 PER ESTATE)
+    // =========================================================================
+    function renderLeaderboards(estates) {
+      const container = document.getElementById('leaderboardGrid');
+      if (estates.length === 0) {
+        container.innerHTML = `<div class="col-span-full bg-white rounded-xl border border-slate-200 p-8 text-center text-xs text-slate-500">Tidak ada data pemanen yang sesuai dengan kombinasi filter saat ini.</div>`;
+        return;
+      }
+
+      // Prioritize KLE (Kelinjau Estate) first
+      estates.sort((a, b) => {
+        if (a.estateCode === 'KLE') return -1;
+        if (b.estateCode === 'KLE') return 1;
+        if (a.estateCode === 'KLP') return -1;
+        if (b.estateCode === 'KLP') return 1;
+        return a.estate.localeCompare(b.estate);
+      });
+
+      const medalStyles = [
+        'bg-amber-400 text-amber-950 ring-2 ring-amber-200',     // Rank 1 (Gold)
+        'bg-emerald-500 text-white ring-2 ring-emerald-100',     // Rank 2
+        'bg-teal-600 text-white ring-2 ring-teal-100',           // Rank 3
+        'bg-slate-200 text-slate-700',                           // Rank 4
+        'bg-slate-100 text-slate-600'                            // Rank 5
+      ];
+
+      container.innerHTML = estates.map(est => {
+        const isInti = est.kategori.toLowerCase() === 'inti';
+        const katBadge = isInti
+          ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
+          : 'bg-sky-100 text-sky-800 border-sky-200';
+
+        const rowsHtml = est.topEmployees.length === 0
+          ? `<div class="py-6 text-center text-xs text-slate-400">Belum ada penerima TAPRO pada filter ini</div>`
+          : est.topEmployees.map((emp, idx) => `
+              <div class="py-2.5 flex items-center justify-between gap-2 ${idx < est.topEmployees.length - 1 ? 'border-b border-slate-100' : ''}">
+                <div class="flex items-center gap-2.5 min-w-0">
+                  <span class="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-extrabold shrink-0 ${medalStyles[idx] || medalStyles[4]}">
+                    ${idx + 1}
+                  </span>
+                  <div class="min-w-0">
+                    <div class="text-xs font-bold text-slate-900 truncate">${emp.nama}</div>
+                    <div class="text-[10px] text-slate-500 truncate">${emp.nik} · ${emp.afdeling} · ${emp.jabatan}</div>
+                  </div>
+                </div>
+                <div class="text-right shrink-0">
+                  <div class="text-xs font-extrabold text-emerald-900">${formatRupiahFull(emp.totalTapro)}</div>
+                  <div class="text-[10px] text-slate-500">${emp.monthsReceived} dari ${emp.monthsActive} bln</div>
+                </div>
+              </div>
+            `).join('');
+
+        return `
+          <div class="bg-white rounded-xl border ${est.estateCode === 'KLE' ? 'border-emerald-400 ring-1 ring-emerald-200/60' : 'border-slate-200/90'} p-4 shadow-sm flex flex-col">
+            <div class="flex items-center justify-between gap-2 pb-2.5 mb-1 border-b border-slate-200">
+              <div class="font-extrabold text-xs text-slate-900 truncate">${est.estate}</div>
+              <div class="flex items-center gap-1 shrink-0">
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">${est.group}</span>
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold border ${katBadge}">${est.kategori}</span>
+              </div>
+            </div>
+            <div class="divide-y divide-slate-100 flex-1">
+              ${rowsHtml}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // =========================================================================
+    // 8. BELOW-THE-FOLD CHARTS (MONTHLY COMBO, AFDELING BAR, COMPOSITION)
+    // =========================================================================
+    function renderMonthlyTrendChart(sortedMonths) {
+      if (monthlyTrendChartInstance) {
+        monthlyTrendChartInstance.destroy();
+      }
+      const ctx = document.getElementById('monthlyTrendChart').getContext('2d');
+      const labels = sortedMonths.map(m => formatMonthShort(m.ym));
+      const taproMillions = sortedMonths.map(m => Number((m.tapro / 1_000_000).toFixed(2)));
+      const hkPct = sortedMonths.map(m => m.hkBudget > 0 ? Number(((m.hkAktual / m.hkBudget) * 100).toFixed(1)) : 0);
+      const oerAvg = sortedMonths.map(m => m.rowCount > 0 ? Number((m.oerAktualSum / m.rowCount).toFixed(2)) : 0);
+
+      monthlyTrendChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [
+            {
+              type: 'bar',
+              label: 'Total TAPRO (Juta Rp)',
+              data: taproMillions,
+              backgroundColor: 'rgba(33, 85, 36, 0.82)',
+              hoverBackgroundColor: '#173e19',
+              borderRadius: 5,
+              yAxisID: 'y',
+              order: 2
+            },
+            {
+              type: 'line',
+              label: 'Kehadiran HK (%)',
+              data: hkPct,
+              borderColor: '#d97706',
+              backgroundColor: '#d97706',
+              borderWidth: 2.5,
+              tension: 0.3,
+              pointRadius: 3.5,
+              yAxisID: 'y1',
+              order: 1
+            },
+            {
+              type: 'line',
+              label: 'OER Aktual (%)',
+              data: oerAvg,
+              borderColor: '#0284c7',
+              backgroundColor: '#0284c7',
+              borderWidth: 2,
+              borderDash: [4, 4],
+              tension: 0.3,
+              pointRadius: 3,
+              yAxisID: 'y1',
+              order: 0
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: {
+              position: 'top',
+              labels: { boxWidth: 12, font: { size: 11, weight: '600' } }
+            }
+          },
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: { font: { size: 11 } }
+            },
+            y: {
+              type: 'linear',
+              position: 'left',
+              title: { display: true, text: 'TAPRO (Juta Rp)', font: { size: 10, weight: 'bold' } },
+              grid: { color: '#f1f5f9' },
+              ticks: { font: { size: 10 } }
+            },
+            y1: {
+              type: 'linear',
+              position: 'right',
+              min: 0,
+              max: 100,
+              title: { display: true, text: 'Persentase (%)', font: { size: 10, weight: 'bold' } },
+              grid: { drawOnChartArea: false },
+              ticks: { font: { size: 10 } }
+            }
+          }
+        }
+      });
+    }
+
+    function renderAfdelingChart(afdelings) {
+      if (afdelingChartInstance) {
+        afdelingChartInstance.destroy();
+      }
+      const sorted = [...afdelings].sort((a, b) => b.tapro - a.tapro).slice(0, 8);
+      const ctx = document.getElementById('afdelingChart').getContext('2d');
+
+      afdelingChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: sorted.map(a => a.label),
+          datasets: [{
+            label: 'Total TAPRO (Juta Rp)',
+            data: sorted.map(a => Number((a.tapro / 1_000_000).toFixed(2))),
+            backgroundColor: sorted.map(a => a.label.startsWith('KLE') ? '#29652d' : '#64748b'),
+            borderRadius: 4
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => `Rp ${fmtDec2.format(ctx.parsed.x)} Juta`
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { color: '#f1f5f9' },
+              ticks: { font: { size: 10 } }
+            },
+            y: {
+              grid: { display: false },
+              ticks: { font: { size: 10, weight: '600' } }
+            }
+          }
+        }
+      });
+    }
+
+    function renderRecipientComposition(totalRows, recipientRows, empSummaryMap) {
+      document.getElementById('compositionTotalLabel').textContent = `${fmtInt.format(totalRows)} karyawan-bulan`;
+      let pnkRows = 0;
+      for (let i = 0; i < filteredDataset.length; i++) {
+        if (filteredDataset[i].statusKhusus === 'PNK') pnkRows++;
+      }
+      const nonPnkZeroRows = Math.max(0, totalRows - recipientRows - pnkRows);
+
+      const pctRec = totalRows > 0 ? (recipientRows / totalRows) * 100 : 0;
+      const pctZero = totalRows > 0 ? (nonPnkZeroRows / totalRows) * 100 : 0;
+      const pctPnk = totalRows > 0 ? (pnkRows / totalRows) * 100 : 0;
+
+      document.getElementById('compositionBar').innerHTML = `
+        <div class="bg-emerald-600 h-full" style="width: ${pctRec.toFixed(1)}%" title="Penerima TAPRO: ${fmtDec1.format(pctRec)}%"></div>
+        <div class="bg-amber-400 h-full" style="width: ${pctZero.toFixed(1)}%" title="Belum Capai Basis: ${fmtDec1.format(pctZero)}%"></div>
+        <div class="bg-rose-500 h-full" style="width: ${pctPnk.toFixed(1)}%" title="Status PNK: ${fmtDec1.format(pctPnk)}%"></div>
+      `;
+
+      document.getElementById('compositionLegend').innerHTML = `
+        <div class="flex items-center gap-1.5">
+          <span class="w-2.5 h-2.5 rounded-sm bg-emerald-600 shrink-0"></span>
+          <span class="text-slate-600 truncate">Dapat TAPRO: <strong class="text-slate-900">${fmtDec1.format(pctRec)}%</strong></span>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <span class="w-2.5 h-2.5 rounded-sm bg-amber-400 shrink-0"></span>
+          <span class="text-slate-600 truncate">Non-Basis: <strong class="text-slate-900">${fmtDec1.format(pctZero)}%</strong></span>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <span class="w-2.5 h-2.5 rounded-sm bg-rose-500 shrink-0"></span>
+          <span class="text-slate-600 truncate">PNK: <strong class="text-slate-900">${fmtDec1.format(pctPnk)}%</strong></span>
+        </div>
+      `;
+    }
+
+    // =========================================================================
+    // 9. EMPLOYEE DETAIL TABLE (SEARCH, SORT, PAGINATION, CSV EXPORT)
+    // =========================================================================
+    function handleTableSearch() {
+      tableState.search = document.getElementById('tableSearchInput').value.trim().toLowerCase();
+      tableState.afdeling = document.getElementById('tableAfdelingFilter').value;
+      tableState.page = 1;
+      filterAndRenderEmployeeTable();
+    }
+
+    function sortTable(key) {
+      if (tableState.sortKey === key) {
+        tableState.sortDir = tableState.sortDir === 'asc' ? 'desc' : 'asc';
+      } else {
+        tableState.sortKey = key;
+        tableState.sortDir = 'desc';
+      }
+      filterAndRenderEmployeeTable();
+    }
+
+    function changeTablePage(delta) {
+      const totalPages = Math.max(1, Math.ceil(filteredEmployeeList.length / tableState.pageSize));
+      tableState.page = Math.min(totalPages, Math.max(1, tableState.page + delta));
+      renderEmployeeTableRows();
+    }
+
+    function filterAndRenderEmployeeTable() {
+      const { search, afdeling, sortKey, sortDir } = tableState;
+      filteredEmployeeList = aggregatedEmployeeList.filter(e => {
+        if (afdeling !== 'ALL' && `${e.estateCode} - ${e.afdeling}` !== afdeling) return false;
+        if (search && !e.nama.toLowerCase().includes(search) && !e.nik.toLowerCase().includes(search)) return false;
+        return true;
+      });
+
+      filteredEmployeeList.sort((a, b) => {
+        let valA = a[sortKey];
+        let valB = b[sortKey];
+        if (typeof valA === 'string') {
+          return sortDir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+        }
+        return sortDir === 'asc' ? valA - valB : valB - valA;
+      });
+
+      renderEmployeeTableRows();
+    }
+
+    function renderEmployeeTableRows() {
+      const tbody = document.getElementById('employeeTableBody');
+      const total = filteredEmployeeList.length;
+      const totalPages = Math.max(1, Math.ceil(total / tableState.pageSize));
+      const startIdx = (tableState.page - 1) * tableState.pageSize;
+      const slice = filteredEmployeeList.slice(startIdx, startIdx + tableState.pageSize);
+
+      if (slice.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="10" class="py-8 text-center text-slate-400">Tidak ada data karyawan ditemukan.</td></tr>`;
+      } else {
+        tbody.innerHTML = slice.map((e, idx) => {
+          const rowNum = startIdx + idx + 1;
+          const badge = e.statusKhusus === 'PNK'
+            ? '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-800">PNK</span>'
+            : e.totalTapro > 0
+              ? '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">Penerima</span>'
+              : '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600">Non-TAPRO</span>';
+
+          return `
+            <tr class="hover:bg-emerald-50/40 transition">
+              <td class="py-2.5 px-4 text-slate-500 font-medium">${rowNum}</td>
+              <td class="py-2.5 px-4 font-mono text-[11px] text-slate-700">${e.nik}</td>
+              <td class="py-2.5 px-4 font-bold text-slate-900">${e.nama}</td>
+              <td class="py-2.5 px-4 text-slate-600">${e.estateCode} · ${e.afdeling}</td>
+              <td class="py-2.5 px-4 text-center font-medium">${e.monthsReceived} / ${e.monthsActive} bln</td>
+              <td class="py-2.5 px-4 text-right">${fmtDec1.format(e.hkRatio)}% <span class="text-[10px] text-slate-400">(${e.hkAktual}/${e.hkBudget})</span></td>
+              <td class="py-2.5 px-4 text-right">${fmtDec1.format(e.avgSiapBorong)} hr</td>
+              <td class="py-2.5 px-4 text-right">${fmtDec2.format(e.avgOer)}%</td>
+              <td class="py-2.5 px-4 text-right font-extrabold text-emerald-900">${formatRupiahFull(e.totalTapro)}</td>
+              <td class="py-2.5 px-4 text-center">${badge}</td>
+            </tr>
+          `;
+        }).join('');
+      }
+
+      document.getElementById('tablePaginationInfo').textContent =
+        total === 0 ? 'Menampilkan 0 karyawan' : `Menampilkan ${startIdx + 1} - ${Math.min(startIdx + tableState.pageSize, total)} dari ${fmtInt.format(total)} karyawan`;
+      document.getElementById('tablePageIndicator').textContent = `Hal ${tableState.page} / ${totalPages}`;
+      document.getElementById('btnPrevPage').disabled = tableState.page <= 1;
+      document.getElementById('btnNextPage').disabled = tableState.page >= totalPages;
+    }
+
+    function exportFilteredTableCSV() {
+      if (filteredEmployeeList.length === 0) {
+        showToast('Tidak ada data untuk diekspor.', 'warning');
+        return;
+      }
+      const headers = ['NIK', 'Nama_Karyawan', 'Estate', 'Afdeling', 'Jabatan', 'Bulan_Terima', 'Bulan_Aktif', 'HK_Aktual', 'HK_Budget', 'Rata_Siap_Borong', 'Rata_OER', 'Total_TAPRO', 'Status'];
+      const lines = [headers.join(',')];
+      filteredEmployeeList.forEach(e => {
+        lines.push([
+          `"${e.nik}"`,
+          `"${e.nama}"`,
+          `"${e.estate}"`,
+          `"${e.afdeling}"`,
+          `"${e.jabatan}"`,
+          e.monthsReceived,
+          e.monthsActive,
+          e.hkAktual,
+          e.hkBudget,
+          e.avgSiapBorong.toFixed(1),
+          e.avgOer.toFixed(2),
+          e.totalTapro,
+          `"${e.statusKhusus}"`
+        ].join(','));
+      });
+
+      const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Rekap_TAPRO_Kelinjau_Estate_${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('File CSV rekap karyawan berhasil diunduh.', 'success');
+    }
+
+    // =========================================================================
+    // 10. FORMAL CORPORATE PDF REPORT GENERATOR (PRINT MODE)
+    // =========================================================================
+    function triggerFormalPrint() {
+      const ctx = window.__latestReportContext;
+      if (!ctx) return;
+
+      const now = new Date();
+      document.getElementById('printTimestamp').textContent = `Dicetak: ${now.toLocaleString('id-ID')}`;
+      document.getElementById('printDocNumber').textContent = `No. Dok: CDM-KLE/TAPRO/${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+      document.getElementById('printMetaPeriod').textContent = `${formatDateIndo(ctx.startDate)} s/d ${formatDateIndo(ctx.endDate)}`;
+      document.getElementById('printMetaEstate').textContent = ctx.estateVal === 'ALL' ? 'Semua Estate (KLE, KLP, KKE, LKE)' : ctx.estateVal;
+      document.getElementById('printMetaGroupOwner').textContent = `${ctx.groupVal === 'ALL' ? 'CDM Group' : ctx.groupVal} / ${ctx.ownerVal === 'ALL' ? 'PT. Cipta Davia Mandiri' : ctx.ownerVal}`;
+      document.getElementById('printMetaJabatan').textContent = `${ctx.jabatanVal === 'ALL' ? 'Semua Jabatan' : ctx.jabatanVal} (${fmtInt.format(ctx.totalRows)} baris data)`;
+
+      // Populate KPI Table
+      document.getElementById('printKpiTableBody').innerHTML = ctx.kpiMetrics.map(k => `
+        <tr>
+          <td class="py-1.5 px-2.5 font-semibold border border-slate-400">${k.name}</td>
+          <td class="py-1.5 px-2.5 text-right font-bold border border-slate-400">${k.val}</td>
+          <td class="py-1.5 px-2.5 border border-slate-400">${k.sub}</td>
+          <td class="py-1.5 px-2.5 text-center border border-slate-400">${k.delta}</td>
+          <td class="py-1.5 px-2.5 text-center font-bold border border-slate-400">${k.status.toUpperCase()}</td>
+        </tr>
+      `).join('');
+
+      // Populate Afdeling Summary Table
+      const sortedAfd = [...ctx.afdelings].sort((a, b) => a.label.localeCompare(b.label));
+      document.getElementById('printAfdelingTableBody').innerHTML = sortedAfd.map(a => {
+        const hkPct = a.hkBudget > 0 ? (a.hkAktual / a.hkBudget) * 100 : 0;
+        const avgSb = a.count > 0 ? a.siapBorong / a.count : 0;
+        const avgOer = a.count > 0 ? a.oerSum / a.count : 0;
+        return `
+          <tr>
+            <td class="py-1 px-2.5 font-semibold border border-slate-400">${a.label}</td>
+            <td class="py-1 px-2.5 text-right border border-slate-400">${fmtInt.format(a.empSet.size)} org</td>
+            <td class="py-1 px-2.5 text-right border border-slate-400">${fmtDec1.format(hkPct)}%</td>
+            <td class="py-1 px-2.5 text-right border border-slate-400">${fmtDec1.format(avgSb)} hari/bln</td>
+            <td class="py-1 px-2.5 text-right border border-slate-400">${fmtDec2.format(avgOer)}%</td>
+            <td class="py-1 px-2.5 text-right font-bold border border-slate-400">${formatRupiahFull(a.tapro)}</td>
+          </tr>
+        `;
+      }).join('');
+
+      // Populate Top 5 Performers per Estate Table
+      const lbRows = [];
+      ctx.estates.forEach(est => {
+        est.topEmployees.forEach((emp, idx) => {
+          lbRows.push(`
+            <tr>
+              <td class="py-1 px-2 border border-slate-400 font-semibold">${est.estate} (${est.kategori})</td>
+              <td class="py-1 px-2 text-center border border-slate-400 font-bold">#${idx + 1}</td>
+              <td class="py-1 px-2 font-mono border border-slate-400">${emp.nik}</td>
+              <td class="py-1 px-2 font-semibold border border-slate-400">${emp.nama}</td>
+              <td class="py-1 px-2 text-center border border-slate-400">${emp.afdeling}</td>
+              <td class="py-1 px-2 text-center border border-slate-400">${emp.monthsReceived} dari ${emp.monthsActive} bln</td>
+              <td class="py-1 px-2 text-right font-bold border border-slate-400">${formatRupiahFull(emp.totalTapro)}</td>
+            </tr>
+          `);
+        });
+      });
+      document.getElementById('printLeaderboardTableBody').innerHTML = lbRows.join('');
+
+      setTimeout(() => {
+        window.print();
+      }, 150);
+    }
+
+    // =========================================================================
+    // 11. BOOTSTRAP APPLICATION (HYBRID INITIALIZATION)
+    // =========================================================================
+    async function initDashboard() {
+      lucide.createIcons();
+
+      // Check IndexedDB first (Opsi C Hybrid)
+      const savedPayload = await loadDatasetFromIndexedDB();
+      if (savedPayload && Array.isArray(savedPayload.records) && savedPayload.records.length > 0) {
+        rawDataset = savedPayload.records;
+        currentDataSourceLabel = `${savedPayload.sourceLabel} [Tersimpan ${savedPayload.savedAt}]`;
+        document.getElementById('footerStorageMode').textContent = `Tersimpan di IndexedDB (${fmtInt.format(rawDataset.length)} baris)`;
+        showToast(`Memuat ${fmtInt.format(rawDataset.length)} baris data tersimpan dari browser.`, 'info');
+      } else {
+        rawDataset = generateDefaultDataset();
+        currentDataSourceLabel = 'Dataset Bawaan (PT. Cipta Davia Mandiri - Kelinjau Estate)';
+      }
+
+      populateFilterOptions();
+      applyFilters();
+    }
+
+    window.addEventListener('DOMContentLoaded', initDashboard);
+  </script>
+</body>
+</html>
